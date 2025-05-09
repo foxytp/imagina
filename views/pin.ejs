@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= pin.title ? pin.title + ' - Imagina' : 'Imagina' %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="icon" href="/img/favicon.png" type="image/png">
+  <style>
+    /* General Styles */
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+
+    /* Navbar styles */
+    .navbar {
+      padding: 0.8rem 1rem;
+    }
+
+    .navbar-brand {
+      font-size: 1.5rem;
+    }
+
+    /* Footer styles */
+    footer {
+      margin-top: 2rem;
+      padding: 1.5rem 0;
+      border-top: 1px solid #dee2e6;
+    }
+
+    /* Pin specific styles */
+    .pin-card {
+      border: none;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .pin-image {
+      border-radius: 0.375rem 0.375rem 0 0;
+    }
+    
+    .comment {
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      background-color: #f8f9fa;
+      margin-bottom: 0.75rem;
+      transition: background-color 0.2s;
+    }
+    
+    .comment:hover {
+      background-color: #f1f3f5;
+    }
+    
+    .related-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+      overflow: hidden;
+    }
+    
+    .related-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .related-card img {
+      transition: transform 0.3s;
+    }
+    
+    .related-card:hover img {
+      transform: scale(1.05);
+    }
+    
+    .badge {
+      transition: background-color 0.2s;
+    }
+    
+    .badge:hover {
+      background-color: #0d6efd !important;
+      color: white !important;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="/">
+          <i class="bi bi-camera text-primary"></i> Imagina
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <form class="d-flex mx-auto" action="/buscar" method="GET">
+            <div class="input-group">
+              <input class="form-control" type="search" name="q" placeholder="Buscar..." aria-label="Buscar">
+              <button class="btn btn-outline-primary" type="submit">
+                <i class="bi bi-search"></i>
+              </button>
+            </div>
+          </form>
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="/explorar">
+                <i class="bi bi-compass"></i> Explorar
+              </a>
+            </li>
+            <% if (typeof user !== 'undefined' && user) { %>
+              <li class="nav-item">
+                <a class="nav-link" href="/upload">
+                  <i class="bi bi-cloud-upload"></i> Subir
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/colecciones">
+                  <i class="bi bi-collection"></i> Colecciones
+                </a>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                  <i class="bi bi-person-circle"></i> <%= user.username %>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><a class="dropdown-item" href="/usuario/<%= user.username %>">Mi perfil</a></li>
+                  <li><a class="dropdown-item" href="/dashboard">Dashboard</a></li>
+                  <li><a class="dropdown-item" href="/editar-perfil">Editar perfil</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/logout">Cerrar sesión</a></li>
+                </ul>
+              </li>
+            <% } else { %>
+              <li class="nav-item">
+                <a class="nav-link" href="/login">Iniciar sesión</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/register">Registrarse</a>
+              </li>
+            <% } %>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container py-4">
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="card shadow-sm mb-4 pin-card">
+            <div class="card-body p-0">
+              <img src="/image/<%= pin.id %>" class="img-fluid w-100 pin-image" alt="<%= pin.title || 'Imagen' %>">
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-lg-4">
+          <div class="card shadow-sm mb-4 pin-card">
+            <div class="card-header bg-white d-flex align-items-center">
+              <a href="/usuario/<%= pin.username %>" class="text-decoration-none d-flex align-items-center">
+                <img src="/avatar/<%= pin.user_id %>" class="rounded-circle me-2" 
+                     width="32" height="32" alt="<%= pin.username %>"
+                     onerror="this.src='/img/default-avatar.png'">
+                <span class="fw-bold"><%= pin.username %></span>
+              </a>
+              
+              <% if (typeof currentUserId !== 'undefined' && currentUserId && currentUserId !== pin.user_id) { %>
+                <a href="/usuario/<%= pin.username %>" class="btn btn-sm btn-outline-primary ms-auto">
+                  Ver perfil
+                </a>
+              <% } %>
+            </div>
+            
+            <div class="card-body">
+              <h5 class="card-title"><%= pin.title || 'Sin título' %></h5>
+              <% if (pin.description) { %>
+                <p class="card-text"><%= pin.description %></p>
+              <% } %>
+              
+              <% if (pin.tags) { %>
+                <div class="mb-3">
+                  <% pin.tags.split(',').forEach(function(tag) { %>
+                    <a href="/explorar?tag=<%= tag.trim() %>" class="badge bg-light text-dark text-decoration-none me-1">
+                      #<%= tag.trim() %>
+                    </a>
+                  <% }); %>
+                </div>
+              <% } %>
+              
+              <div class="d-flex align-items-center mb-3">
+                <button class="btn btn-sm <%= liked ? 'btn-danger' : 'btn-outline-danger' %> me-2" 
+                        id="like-button" data-id="<%= pin.id %>" <%= !currentUserId ? 'disabled' : '' %>>
+                  <i class="bi <%= liked ? 'bi-heart-fill' : 'bi-heart' %>"></i> 
+                  <span id="like-count"><%= likeCount %></span>
+                </button>
+                
+                <% if (typeof userCollections !== 'undefined' && userCollections.length > 0) { %>
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" 
+                            id="saveDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="bi bi-bookmark"></i> Guardar
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="saveDropdown">
+                      <% userCollections.forEach(function(col) { %>
+                        <li>
+                          <form action="/coleccion/agregar" method="POST">
+                            <input type="hidden" name="image_id" value="<%= pin.id %>">
+                            <input type="hidden" name="collection_id" value="<%= col.id %>">
+                            <button type="submit" class="dropdown-item"><%= col.name %></button>
+                          </form>
+                        </li>
+                      <% }); %>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="/colecciones/nueva">
+                        <i class="bi bi-plus-circle"></i> Crear nueva colección
+                      </a></li>
+                    </ul>
+                  </div>
+                <% } else if (currentUserId) { %>
+                  <a href="/colecciones/nueva" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-bookmark"></i> Crear colección
+                  </a>
+                <% } %>
+              </div>
+              
+              <div class="text-muted small">
+                <i class="bi bi-calendar"></i> Publicado el <%= new Date(pin.created_at).toLocaleDateString() %>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Comments Section -->
+          <div class="card shadow-sm pin-card">
+            <div class="card-header bg-white">
+              <h6 class="mb-0">Comentarios</h6>
+            </div>
+            
+            <div class="card-body">
+              <% if (currentUserId) { %>
+                <form id="comment-form" class="mb-4">
+                  <input type="hidden" id="image-id" value="<%= pin.id %>">
+                  <input type="hidden" id="parent-id" value="">
+                  <div class="mb-3">
+                    <textarea class="form-control" id="comment-text" rows="2" 
+                              placeholder="Añade un comentario..."></textarea>
+                  </div>
+                  <div class="text-end">
+                    <button type="button" id="cancel-reply" class="btn btn-sm btn-outline-secondary me-2 d-none">
+                      Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                      <i class="bi bi-send"></i> Comentar
+                    </button>
+                  </div>
+                </form>
+              <% } else { %>
+                <div class="alert alert-info">
+                  <a href="/login">Inicia sesión</a> para dejar un comentario
+                </div>
+              <% } %>
+              
+              <div id="comments-container">
+                <% if (comments.length === 0) { %>
+                  <div class="text-center py-3 text-muted" id="no-comments">
+                    <i class="bi bi-chat"></i> No hay comentarios aún
+                  </div>
+                <% } else { %>
+                  <% function renderComment(comment, level = 0) { %>
+                    <div class="comment mb-3 <%= level > 0 ? 'ms-4' : '' %>" id="comment-<%= comment.id %>">
+                      <div class="d-flex">
+                        <img src="/avatar/<%= comment.user_id %>" class="rounded-circle me-2" 
+                             width="32" height="32" alt="<%= comment.username %>"
+                             onerror="this.src='/img/default-avatar.png'">
+                        <div class="flex-grow-1">
+                          <div class="d-flex align-items-center">
+                            <a href="/usuario/<%= comment.username %>" class="fw-bold text-decoration-none">
+                              <%= comment.username %>
+                            </a>
+                            <small class="text-muted ms-2">
+                              <%= new Date(comment.created_at).toLocaleDateString() %>
+                            </small>
+                          </div>
+                          <div class="mt-1"><%= comment.comment %></div>
+                          <div class="mt-1 d-flex align-items-center">
+                            <button class="btn btn-sm text-muted comment-like-btn" 
+                                    data-id="<%= comment.id %>" <%= !currentUserId ? 'disabled' : '' %>>
+                              <i class="bi <%= comment.liked ? 'bi-heart-fill text-danger' : 'bi-heart' %>"></i>
+                              <span class="comment-like-count"><%= comment.likeCount %></span>
+                            </button>
+                            
+                            <% if (currentUserId) { %>
+                              <button class="btn btn-sm text-muted reply-btn" data-id="<%= comment.id %>" 
+                                      data-username="<%= comment.username %>">
+                                <i class="bi bi-reply"></i> Responder
+                              </button>
+                              
+                              <% if (currentUserId === comment.user_id) { %>
+                                <button class="btn btn-sm text-muted delete-comment-btn" data-id="<%= comment.id %>">
+                                  <i class="bi bi-trash"></i> Eliminar
+                                </button>
+                              <% } %>
+                            <% } %>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <% if (comment.children && comment.children.length > 0) { %>
+                        <div class="replies mt-2">
+                          <% comment.children.forEach(function(reply) { %>
+                            <%= renderComment(reply, level + 1) %>
+                          <% }); %>
+                        </div>
+                      <% } %>
+                    </div>
+                  <% } %>
+                  
+                  <% comments.forEach(function(comment) { %>
+                    <%= renderComment(comment) %>
+                  <% }); %>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <% if (relatedPins && relatedPins.length > 0) { %>
+        <div class="row mt-4">
+          <div class="col-12">
+            <h5 class="mb-3">Imágenes relacionadas</h5>
+            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3">
+              <% relatedPins.forEach(function(relPin) { %>
+                <div class="col">
+                  <div class="card h-100 border-0 shadow-sm related-card">
+                    <a href="/pin/<%= relPin.id %>" class="text-decoration-none">
+                      <img src="/image/<%= relPin.id %>" class="card-img-top" alt="<%= relPin.title || 'Imagen' %>" 
+                           style="height: 150px; object-fit: cover;">
+                      <div class="card-body p-2">
+                        <p class="card-text small text-truncate"><%= relPin.title || 'Sin título' %></p>
+                        <p class="card-text small text-muted">
+                          <img src="/avatar/<%= relPin.user_id %>" class="rounded-circle me-1" 
+                               width="16" height="16" alt="<%= relPin.username %>"
+                               onerror="this.src='/img/default-avatar.png'">
+                          <%= relPin.username %>
+                        </p>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </main>
+
+  <!-- Toast container for notifications -->
+  <div id="toast-container" class="position-fixed bottom-0 end-0 p-3" style="z-index: 11;"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Like button functionality
+      const likeButton = document.getElementById('like-button');
+      if (likeButton) {
+        likeButton.addEventListener('click', function() {
+          const imageId = this.getAttribute('data-id');
+          fetch('/like/' + imageId, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            document.getElementById('like-count').textContent = data.likeCount;
+            if (likeButton.classList.contains('btn-outline-danger')) {
+              likeButton.classList.remove('btn-outline-danger');
+              likeButton.classList.add('btn-danger');
+              likeButton.querySelector('i').classList.remove('bi-heart');
+              likeButton.querySelector('i').classList.add('bi-heart-fill');
+            } else {
+              likeButton.classList.remove('btn-danger');
+              likeButton.classList.add('btn-outline-danger');
+              likeButton.querySelector('i').classList.remove('bi-heart-fill');
+              likeButton.querySelector('i').classList.add('bi-heart');
+            }
+          })
+          .catch(error => console.error('Error:', error));
+        });
+      }
+      
+      // Comment form functionality
+      const commentForm = document.getElementById('comment-form');
+      if (commentForm) {
+        commentForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const imageId = document.getElementById('image-id').value;
+          const parentId = document.getElementById('parent-id').value;
+          const commentText = document.getElementById('comment-text').value;
+          
+          if (!commentText.trim()) return;
+          
+          fetch('/comment/' + imageId, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              comment: commentText,
+              parentId: parentId || null
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            document.getElementById('comment-text').value = '';
+            document.getElementById('parent-id').value = '';
+            document.getElementById('cancel-reply').classList.add('d-none');
+            
+            // Remove "no comments" message if it exists
+            const noComments = document.getElementById('no-comments');
+            if (noComments) noComments.remove();
+            
+            // Add the new comment to the DOM
+            if (parentId) {
+              // Add as a reply
+              const parentComment = document.getElementById('comment-' + parentId);
+              let repliesContainer = parentComment.querySelector('.replies');
+              
+              if (!repliesContainer) {
+                repliesContainer = document.createElement('div');
+                repliesContainer.className = 'replies mt-2';
+                parentComment.appendChild(repliesContainer);
+              }
+              
+              repliesContainer.insertAdjacentHTML('beforeend', createCommentHTML(data, true));
+            } else {
+              // Add as a top-level comment
+              document.getElementById('comments-container').insertAdjacentHTML('beforeend', createCommentHTML(data, false));
+            }
+          })
+          .catch(error => console.error('Error:', error));
+        });
+      }
+      
+      // Reply button functionality
+      document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('reply-btn') || e.target.parentElement.classList.contains('reply-btn')) {
+          const button = e.target.classList.contains('reply-btn') ? e.target : e.target.parentElement;
+          const commentId = button.getAttribute('data-id');
+          const username = button.getAttribute('data-username');
+          
+          document.getElementById('parent-id').value = commentId;
+          document.getElementById('comment-text').value = '@' + username + ' ';
+          document.getElementById('comment-text').focus();
+          document.getElementById('cancel-reply').classList.remove('d-none');
+        }
+      });
+      
+      // Cancel reply button
+      const cancelReplyBtn = document.getElementById('cancel-reply');
+      if (cancelReplyBtn) {
+        cancelReplyBtn.addEventListener('click', function() {
+          document.getElementById('parent-id').value = '';
+          document.getElementById('comment-text').value = '';
+          this.classList.add('d-none');
+        });
+      }
+      
+      // Comment like functionality
+      document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('comment-like-btn') || e.target.parentElement.classList.contains('comment-like-btn')) {
+          const button = e.target.classList.contains('comment-like-btn') ? e.target : e.target.parentElement;
+          const commentId = button.getAttribute('data-id');
+          
+          fetch('/comment/like/' + commentId, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            const icon = button.querySelector('i');
+            const count = button.querySelector('.comment-like-count');
+            
+            count.textContent = data.likeCount;
+            
+            if (icon.classList.contains('bi-heart')) {
+              icon.classList.remove('bi-heart');
+              icon.classList.add('bi-heart-fill');
+              icon.classList.add('text-danger');
+            } else {
+              icon.classList.remove('bi-heart-fill');
+              icon.classList.remove('text-danger');
+              icon.classList.add('bi-heart');
+            }
+          })
+          .catch(error => console.error('Error:', error));
+        }
+      });
+      
+      // Delete comment functionality
+      document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete-comment-btn') || e.target.parentElement.classList.contains('delete-comment-btn')) {
+          if (!confirm('¿Estás seguro de que quieres eliminar este comentario?')) return;
+          
+          const button = e.target.classList.contains('delete-comment-btn') ? e.target : e.target.parentElement;
+          const commentId = button.getAttribute('data-id');
+          
+          fetch('/comment/delete/' + commentId, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              const comment = document.getElementById('comment-' + commentId);
+              comment.remove();
+              
+              // If no comments left, show the "no comments" message
+              const commentsContainer = document.getElementById('comments-container');
+              if (commentsContainer.children.length === 0) {
+                commentsContainer.innerHTML = '<div class="text-center py-3 text-muted" id="no-comments"><i class="bi bi-chat"></i> No hay comentarios aún</div>';
+              }
+            }
+          })
+          .catch(error => console.error('Error:', error));
+        }
+      });
+      
+      // Helper function to create comment HTML
+      function createCommentHTML(comment, isReply) {
+        return `
+          <div class="comment mb-3 ${isReply ? 'ms-4' : ''}" id="comment-${comment.id}">
+            <div class="d-flex">
+              <img src="/avatar/${comment.user_id}" class="rounded-circle me-2" 
+                   width="32" height="32" alt="${comment.username}"
+                   onerror="this.src='/img/default-avatar.png'">
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center">
+                  <a href="/usuario/${comment.username}" class="fw-bold text-decoration-none">
+                    ${comment.username}
+                  </a>
+                  <small class="text-muted ms-2">
+                    ${new Date(comment.created_at).toLocaleDateString()}
+                  </small>
+                </div>
+                <div class="mt-1">${comment.comment}</div>
+                <div class="mt-1 d-flex align-items-center">
+                  <button class="btn btn-sm text-muted comment-like-btn" data-id="${comment.id}">
+                    <i class="bi bi-heart"></i>
+                    <span class="comment-like-count">${comment.likeCount}</span>
+                  </button>
+                  <button class="btn btn-sm text-muted reply-btn" data-id="${comment.id}" 
+                          data-username="${comment.username}">
+                    <i class="bi bi-reply"></i> Responder
+                  </button>
+                  <button class="btn btn-sm text-muted delete-comment-btn" data-id="${comment.id}">
+                    <i class="bi bi-trash"></i> Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Function to show toast notifications
+      function showToast(message) {
+        // Create toast element
+        const toastId = "toast-" + Date.now();
+        const toastEl = document.createElement("div");
+        toastEl.id = toastId;
+        toastEl.className = "toast";
+        toastEl.setAttribute("role", "alert");
+        toastEl.setAttribute("aria-live", "assertive");
+        toastEl.setAttribute("aria-atomic", "true");
+
+        toastEl.innerHTML = `
+          <div class="toast-header">
+            <strong class="me-auto">Imagina</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+          <div class="toast-body">
+            ${message}
+          </div>
+        `;
+
+        document.getElementById("toast-container").appendChild(toastEl);
+
+        // Initialize and show toast
+        const toast = new bootstrap.Toast(toastEl, {
+          autohide: true,
+          delay: 3000,
+        });
+        toast.show();
+
+        // Remove toast after it's hidden
+        toastEl.addEventListener("hidden.bs.toast", () => {
+          toastEl.remove();
+        });
+      }
+
+      // Check for success messages in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const mensaje = urlParams.get("mensaje");
+
+      if (mensaje === "guardado") {
+        showToast("Imagen guardada en la colección");
+      }
+
+      // Make showToast available globally
+      window.showToast = showToast;
+    });
+  </script>
+</body>
+</html>
